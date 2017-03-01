@@ -7,6 +7,8 @@ library("XLConnectJars")
 library("XLConnect")
 
 
+pdf(NULL)
+
 
 function(input,output,session){
 
@@ -102,6 +104,7 @@ function(input,output,session){
     
     airNitro <- NULL
     
+    # airNitro_temp <- as.data.frame(subset(Q2_data()[,7:10],Q2_data()$MINS >= as.numeric(input$fluoro_start) & Q2_data()$MINS <= as.numeric(input$fluoro_end)), stringsAsFactors = FALSE)
     airNitro_temp <- as.data.frame(subset(Q2_data()[,7:10],Q2_data()$MINS >= as.numeric(input$UI_times[1]) & Q2_data()$MINS <= as.numeric(input$UI_times[2])), stringsAsFactors = FALSE)
     
     airNitro_temp[,1] <- as.numeric(unlist(airNitro_temp[,1]))
@@ -149,18 +152,26 @@ function(input,output,session){
         output$fluoro_slider <- renderUI(sliderInput("UI_times","Start time and Duration",
                                 min = as.numeric(paste0(min(Q2_data()$MINS, na.rm = TRUE))),
                                 max = as.numeric(paste0(max(Q2_data()$MINS, na.rm = TRUE))),
-                                value = c(as.numeric(paste0(min(Q2_data()$MINS, na.rm = TRUE))),as.numeric(paste0(max(Q2_data()$MINS, na.rm = TRUE)))),
-                                step = as.numeric(Q2_data()$MINS[2]),
-                                dragRange = TRUE, post = " min")
-        )
+                                value = c(as.numeric(paste0(min(Q2_data()$MINS, na.rm = TRUE))),
+                                as.numeric(paste0(max(Q2_data()$MINS, na.rm = TRUE)))),
+                                step = as.numeric(Q2_data()$MINS[2]),dragRange = TRUE, post = " min"))
+        
+        output$fluoro_start_spot <- renderUI(textInput("fluoro_start", "Start Time (min)",value = paste0(min(Q2_data()$MINS, na.rm = TRUE))))
+        tags$br()
+        output$fluoro_end_spot <- renderUI(textInput("fluoro_end", "End Time (min)",value = paste0(max(Q2_data()$MINS, na.rm = TRUE))))
+        tags$h3(output$fluoro_or_spot <- renderText("or"))
+        tags$br()
+        output$fluoro_duration_spot <- renderUI(textInput("fluoro_duration", "Duration (min)",value = paste0(max(Q2_data()$MINS, na.rm = TRUE))))
       }
     }
   )
   
-  
+  # NB: Add function in here that checks the start, end and duration text boxes and updates them if they are NOT multiples of <INTERVAL>
+  # What about something to do witg 
 
   Q2_slopes <- reactive({
-
+    
+    # Q2_subset <- subset(Q2_data(),Q2_data()$MINS >= as.numeric(input$fluoro_start) & Q2_data()$MINS <= as.numeric(input$fluoro_end))
     Q2_subset <- subset(Q2_data(),Q2_data()$MINS >= as.numeric(input$UI_times[1]) & Q2_data()$MINS <= as.numeric(input$UI_times[2]))
     
     Q2_subset_temp <- Q2_subset[,7:54]
@@ -180,7 +191,7 @@ function(input,output,session){
     
     slopes[,2] <- as.numeric(slopes[,2])*60
     
-    slopes[-(1:4),2] <- as.numeric(slopes[-(1:4),2])-mean(c(as.numeric(slopes[3,2]),as.numeric(slopes[4,2])))
+    # slopes[-(1:4),2] <- as.numeric(slopes[-(1:4),2])-mean(c(as.numeric(slopes[3,2]),as.numeric(slopes[4,2])))
     
     return(slopes)
 
@@ -202,25 +213,57 @@ function(input,output,session){
     
     pressureCalc <- sitePressure-(101.35*(1-(1-(altitude/44307.69231))^5.25328))
                                       
-    if (!is.null(input$xlsInput) && (!is.null(input$UI_times)) && (meta == "0") && (!is.null(Q2_Air_Nitro()$ratio))){
+    if (!is.null(input$xlsInput) && (!is.null(input$UI_times)) && (meta == "0") && (!is.null(mean(c(as.numeric(Q2_slopes()[3:4,2])))))){
       
-      airN2Ratio <- as.numeric(Q2_Air_Nitro()$ratio)
+      # airN2Ratio <- as.numeric(Q2_Air_Nitro()$ratio)
       
-      temp_Q2_slopes <- Q2_slopes()[-(1:4),2]
-
-      temp_Q2_plate_metadata <- Q2_plate_metadata()[-(1:4),]
+      airSlope <- mean(c(as.numeric(Q2_slopes()[3:4,2])))
+      
+      # temp_Q2_slopes <- Q2_slopes()[-(1:4),2]
+      temp_Q2_slopes <- Q2_slopes()[,2]
+      
+      # temp_Q2_plate_metadata <- Q2_plate_metadata()[-(1:4),]
+      temp_Q2_plate_metadata <- Q2_plate_metadata()
       
       temp_Q2_slopes <- lapply(temp_Q2_slopes, as.character)
       temp_Q2_slopes <- as.numeric(temp_Q2_slopes)
       
+      # temp_Q2_plate_metadata$Slopes <- as.numeric(Q2_slopes()[-(1:4),2])
+      temp_Q2_plate_metadata$Slopes <- as.numeric(Q2_slopes()[,2])
+      
+      
       temp_Q2_plate_metadata$Area <- as.numeric(temp_Q2_plate_metadata$Area)
       temp_Q2_plate_metadata$Fresh_Weight <- as.numeric(temp_Q2_plate_metadata$Fresh_Weight)
       temp_Q2_plate_metadata$Dry_Weight <- as.numeric(temp_Q2_plate_metadata$Dry_Weight)
+      
+      # NB: Original calculations based on Clarissa's models. These are different to what is found in Scafaro et. al. (2016) (unpublished)
+      # temp_Q2_plate_metadata$Area_Resp <- -(pressureCalc*((20.95/100)*tubeVol*temp_Q2_slopes/airN2Ratio)/(8314*(273.15+temperature))/(60*60)*1000000*(10000/temp_Q2_plate_metadata$Area))
+      # temp_Q2_plate_metadata$Fresh_Resp <- -(pressureCalc*((20.95/100)*tubeVol*temp_Q2_slopes/airN2Ratio)/(8314*(273.15+temperature))/(60*60)*1000000*(1/temp_Q2_plate_metadata$Fresh_Weight)*1000)
+      # temp_Q2_plate_metadata$Dry_Resp <- -(pressureCalc*((20.95/100)*tubeVol*temp_Q2_slopes/airN2Ratio)/(8314*(273.15+temperature))/(60*60)*1000000*(1/temp_Q2_plate_metadata$Dry_Weight)*1000)
 
-      temp_Q2_plate_metadata$Area_Resp <- -(pressureCalc*((20.95/100)*tubeVol*temp_Q2_slopes/airN2Ratio)/(8314*(273.15+temperature))/(60*60)*1000000*(10000/temp_Q2_plate_metadata$Area))
-      temp_Q2_plate_metadata$Fresh_Resp <- -(pressureCalc*((20.95/100)*tubeVol*temp_Q2_slopes/airN2Ratio)/(8314*(273.15+temperature))/(60*60)*1000000*(1/temp_Q2_plate_metadata$Fresh_Weight)*1000)
-      temp_Q2_plate_metadata$Dry_Resp <- -(pressureCalc*((20.95/100)*tubeVol*temp_Q2_slopes/airN2Ratio)/(8314*(273.15+temperature))/(60*60)*1000000*(1/temp_Q2_plate_metadata$Dry_Weight)*1000)
+      temp_Q2_plate_metadata$Area_Resp <- -(pressureCalc*((20.95/100)*tubeVol*(temp_Q2_slopes - airSlope))/(8314*(273.15+temperature))/(60*60)*1000000*(10000/temp_Q2_plate_metadata$Area))
+      temp_Q2_plate_metadata$Fresh_Resp <- -(pressureCalc*((20.95/100)*tubeVol*(temp_Q2_slopes - airSlope))/(8314*(273.15+temperature))/(60*60)*1000000*(1/temp_Q2_plate_metadata$Fresh_Weight)*1000)
+      temp_Q2_plate_metadata$Dry_Resp <- -(pressureCalc*((20.95/100)*tubeVol*(temp_Q2_slopes - airSlope))/(8314*(273.15+temperature))/(60*60)*1000000*(1/temp_Q2_plate_metadata$Dry_Weight)*1000)
+      
     }
+    
+    
+    
+    # Clarissa
+    # 
+    # =-($D$4*(($D$1/100)*$D$5*B20/$D$8)/($D$6*(273.15+$D$7))/(60*60)*1000000*(10000/D20))
+    # 
+    # B20:<slope in time group>
+    #   $D$8: <Air:Nitrogen Standard Range in time group> = 
+    #   
+    #   Lucy
+    # 
+    # =-($D$4*(($D$1/100)*$D$5*(K20+Q20)/P20))/($D$6*(273.15+$D$7))/(60*60)*1000000*(10000/D20)
+    # 
+    # K20:<slope>
+    #   Q20:<signal slope> = <average air> - <average N2>
+    #   P20:<signal range> = <air>(OFFSET?) - <N2>(OFFSET?)
+    
     
     return(temp_Q2_plate_metadata)
     
@@ -235,7 +278,7 @@ function(input,output,session){
   observe({
     if ((!is.null(Q2_Respiration())) && (!is.null(input$UI_times))){  
       output$Resp_Area <- renderPlotly({
-        resp_area_plot <- ggplot(Q2_Respiration(), aes(x=Well, y=Area_Resp)) + geom_bar(stat="identity")
+        resp_area_plot <- ggplot(Q2_Respiration()[-(1:4),], aes(x=Well, y=Area_Resp)) + geom_bar(stat="identity")
         resp_area_plot <- resp_area_plot + labs(x = "Well (Q2)",y = paste0("\u03BC","mol Oxygen /m*m/s"), title = "Respiration based on Leaf Area")
         resp_area_plot <- resp_area_plot + scale_y_continuous(expand=c(0,0))
         resp_area_plot <- resp_area_plot + theme(axis.title.x = element_text(vjust = -0.5),axis.title.y = element_text(hjust = -1),axis.text = element_text(size=5)) + theme_bw()
@@ -250,7 +293,7 @@ function(input,output,session){
   observe({
     if ((!is.null(Q2_Respiration())) && (!is.null(input$UI_times))){
       output$Resp_Fresh_Mass <- renderPlotly({
-        resp_area_plot <- ggplot(Q2_Respiration(), aes(x=Well, y=Fresh_Resp)) + geom_bar(stat="identity")
+        resp_area_plot <- ggplot(Q2_Respiration()[-(1:4),], aes(x=Well, y=Fresh_Resp)) + geom_bar(stat="identity")
         resp_area_plot <- resp_area_plot + labs(x = "Well (Q2)",y = paste0("nmol Oxygen /g/s"), title = "Respiration based on Leaf Mass (Fresh)")
         resp_area_plot <- resp_area_plot + scale_y_continuous(expand=c(0,0))
         resp_area_plot <- resp_area_plot + theme(axis.title.x = element_text(vjust = -0.5),axis.title.y = element_text(hjust = -1),axis.text = element_text(size=5)) + theme_bw()
@@ -264,7 +307,7 @@ function(input,output,session){
   observe({
     if ((!is.null(Q2_Respiration())) && (!is.null(input$UI_times))){
       output$Resp_Dry_Mass <- renderPlotly({
-        resp_area_plot <- ggplot(Q2_Respiration(), aes(x=Well, y=Dry_Resp)) + geom_bar(stat="identity")
+        resp_area_plot <- ggplot(Q2_Respiration()[-(1:4),], aes(x=Well, y=Dry_Resp)) + geom_bar(stat="identity")
         resp_area_plot <- resp_area_plot + labs(x = "Well (Q2)",y = paste0("nmol Oxygen /g/s"), title = "Respiration based on Leaf Mass (Dry)")
         resp_area_plot <- resp_area_plot + scale_y_continuous(expand=c(0,0))
         resp_area_plot <- resp_area_plot + theme(axis.title.x = element_text(vjust = -0.5),axis.title.y = element_text(hjust = -1),axis.text = element_text(size=5)) + theme_bw()
@@ -280,12 +323,46 @@ function(input,output,session){
       downloadButton("downloadBtn", "Download Respiration Data")
     }
   )
+  
+  # NB: this is for the future so you can save different types of data
+  # 
+  # output$download_type_spot <- renderUI(
+  #   if (!is.null(Q2_Respiration()) && (!is.null(input$fluoro_start))){
+  #     selectInput("download_type", "Download As:", c("Comma Separated" = "csv", "Tab Delimited" = "txt","Excel file" = "xls"))
+  #   }
+  # )
+  # 
+  # reactive({
+  #   if (is.null(Q2_Respiration()) || (is.null(input$fluoro_start))){
+  #   }
+  #   else if (input$download_type == "txt"){
+  #     output$downloadBtn <- downloadHandler(
+  #       filename = function() {"Respiration_data.txt"},
+  #       content = function(file) {write.table(Q2_Respiration(), file, row.names=FALSE, sep="\t")}
+  #     )
+  #   }
+  #   else if (input$download_type == "csv"){
+  #     output$downloadBtn <- downloadHandler(
+  #       filename = function() {"Respiration_data.csv"},
+  #       content = function(file) {write.csv(Q2_Respiration(), file, row.names=FALSE)}
+  #     )
+  #   }
+  #   else if (input$download_type == "xlsx"){
+  #     output$downloadBtn <- downloadHandler(
+  #       filename = function() {"Respiration_data.xlsx"},
+  #       content = function(file) {write.xlsx(Q2_Respiration(), file, row.names=FALSE)}
+  #     )
+  #   }
+  # })
+  
+  
 
   
 
   output$downloadBtn <- downloadHandler(
-    filename = function() {"Respiration_data.csv"},
-    content = function(file) {write.csv(Q2_Respiration(), file, row.names=FALSE)}
+
+      filename = function() {"Respiration_data.csv"},
+      content = function(file) {write.csv(Q2_Respiration(), file, row.names=FALSE)}
   )
 
   

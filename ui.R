@@ -4,10 +4,12 @@ library("XLConnectJars")
 library("XLConnect")
 
 
+
 fluidPage(
   
-  tags$h1("Q2 Summariser"),
+  tags$h1("Q2 Analyser"),
   tags$br(),
+  # uiOutput("download_type_spot"), - NB: For saveing as different types
   uiOutput("data_download"),
   tags$br(),
     
@@ -48,9 +50,12 @@ fluidPage(
         
         textOutput("fluoro_notice"),
         plotlyOutput("fluoro"),
-        uiOutput("fluoro_slider")
+        uiOutput("fluoro_slider"),
+        uiOutput("fluoro_start_spot"),
+        uiOutput("fluoro_end_spot"),
+        textOutput("fluoro_or_spot"),
+        uiOutput("fluoro_duration_spot")
         
-               
         ),
      tabPanel("Respiration", value = "Q2_resp_tab",
         
@@ -80,7 +85,8 @@ fluidPage(
     ),
   tabPanel("Help", value = "Q2_help_tab",
           tags$h2("Help and instructions are coming soon. In the meantime, contact Darren Cullerne for help!"),
-          tags$a(href="mailto:darren.cullerne@anu.edu.au", "darren.cullerne@anu.edu.au")
+          tags$a(href="mailto:darren.cullerne@anu.edu.au", "darren.cullerne@anu.edu.au"),
+          textOutput("temp1")
           
   )
   
