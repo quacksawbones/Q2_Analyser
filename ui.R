@@ -19,7 +19,8 @@ fluidPage(
         column(3,
           tags$h1("Upload Q2 Data File"),
           fileInput("xlsInput", "", accept = c(".xls",".xlsx")),
-          textOutput("data_notice")  
+          textOutput("data_notice"),  
+          uiOutput("data_blanks")
         )
   
       ),
@@ -70,25 +71,30 @@ fluidPage(
         #   tableOutput("respiration"),
         #   textOutput("respiration_notice")
         # )
-        column(1,
-          tableOutput("respiration")
-        ),
-        column(6,offset=5,
-               plotlyOutput("Resp_Area"),
-               tags$br(),
-               plotlyOutput("Resp_Fresh_Mass"),
-               tags$br(),
-               plotlyOutput("Resp_Dry_Mass")
+          column(1,
+            tableOutput("respiration")
+          ),
+          column(6,offset=5,
+                 plotlyOutput("Resp_Area"),
+                 tags$br(),
+                 plotlyOutput("Resp_Fresh_Mass"),
+                 tags$br(),
+                 plotlyOutput("Resp_Dry_Mass")
+          )
         )
       )
-    )
     ),
-  tabPanel("Help", value = "Q2_help_tab",
-          tags$h2("Help and instructions are coming soon. In the meantime, contact Darren Cullerne for help!"),
-          tags$a(href="mailto:darren.cullerne@anu.edu.au", "darren.cullerne@anu.edu.au"),
-          textOutput("temp1")
-          
-  )
-  
+    tabPanel("Help", value = "Q2_help_tab",
+            tags$h2("Help and instructions are coming soon. In the meantime, contact Darren Cullerne for help!"),
+            tags$a(href="mailto:darren.cullerne@anu.edu.au", "darren.cullerne@anu.edu.au"),
+            textOutput("temp1")
+    ),
+    
+    tabPanel("Debug", value = "Q2_help_tab",
+      tableOutput("tempTable1"),
+      tableOutput("tempTable2"),
+      textOutput("tempText1"),
+      textOutput("tempText2")
+    )
   )
 )

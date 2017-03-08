@@ -58,10 +58,34 @@ function(input,output,session){
         plate_data$HRS <- as.integer(plate_data$HRS)
         colnames(plate_data)[which(names(plate_data) == "HRS")] <- paste("MINS")
         
+
         output$data_notice <- renderText("Q2 data file appears to be valid")
+
+          
         return(plate_data)
       }
     }
+    
+  })
+  
+  
+  Q2_blanks <- reactive({
+
+    blanks <- vector()
+        
+    if (!is.null(input$xlsInput)){
+      
+      for (i in 7:54){
+        
+        if (is.na(Q2_data()[,i])){
+        
+          blanks <- c(blanks,colnames(Q2_data()[i]))
+        
+        }
+      }
+    }
+
+    return(blanks)
     
   })
   
@@ -100,26 +124,26 @@ function(input,output,session){
   
   
   
-  Q2_Air_Nitro <- reactive({
-    
-    airNitro <- NULL
-    
-    # airNitro_temp <- as.data.frame(subset(Q2_data()[,7:10],Q2_data()$MINS >= as.numeric(input$fluoro_start) & Q2_data()$MINS <= as.numeric(input$fluoro_end)), stringsAsFactors = FALSE)
-    airNitro_temp <- as.data.frame(subset(Q2_data()[,7:10],Q2_data()$MINS >= as.numeric(input$UI_times[1]) & Q2_data()$MINS <= as.numeric(input$UI_times[2])), stringsAsFactors = FALSE)
-    
-    airNitro_temp[,1] <- as.numeric(unlist(airNitro_temp[,1]))
-    airNitro_temp[,2] <- as.numeric(unlist(airNitro_temp[,2]))
-    
-    airNitro_temp[,3] <- as.numeric(unlist(airNitro_temp[,3]))
-    airNitro_temp[,4] <- as.numeric(unlist(airNitro_temp[,4]))
-    
-    airNitro$nitroMean <- mean(c(airNitro_temp[,1],airNitro_temp[,2]))
-    airNitro$airMean <- mean(c(airNitro_temp[,3],airNitro_temp[,4]))
-    airNitro$ratio <- airNitro$airMean-airNitro$nitroMean
-
-    return(airNitro)
-    
-  })
+  # Q2_Air_Nitro <- reactive({
+  #   
+  #   airNitro <- NULL
+  #   
+  #   # airNitro_temp <- as.data.frame(subset(Q2_data()[,7:10],Q2_data()$MINS >= as.numeric(input$fluoro_start) & Q2_data()$MINS <= as.numeric(input$fluoro_end)), stringsAsFactors = FALSE)
+  #   airNitro_temp <- as.data.frame(subset(Q2_data()[,7:10],Q2_data()$MINS >= as.numeric(input$UI_times[1]) & Q2_data()$MINS <= as.numeric(input$UI_times[2])), stringsAsFactors = FALSE)
+  #   
+  #   airNitro_temp[,1] <- as.numeric(unlist(airNitro_temp[,1]))
+  #   airNitro_temp[,2] <- as.numeric(unlist(airNitro_temp[,2]))
+  #   
+  #   airNitro_temp[,3] <- as.numeric(unlist(airNitro_temp[,3]))
+  #   airNitro_temp[,4] <- as.numeric(unlist(airNitro_temp[,4]))
+  #   
+  #   airNitro$nitroMean <- mean(c(airNitro_temp[,1],airNitro_temp[,2]))
+  #   airNitro$airMean <- mean(c(airNitro_temp[,3],airNitro_temp[,4]))
+  #   airNitro$ratio <- airNitro$airMean-airNitro$nitroMean
+  # 
+  #   return(airNitro)
+  #   
+  # })
   
 
   observeEvent({input$tabs == "Q2_fluoro_tab"},
@@ -135,7 +159,15 @@ function(input,output,session){
         
       if (!is.null(input$xlsInput)){
         
-        melting <- melt(Q2_data(), measure.vars = wells)
+        melting <- Q2_data()
+        
+        for (Q in Q2_blanks()){
+          melting[[Q]] <- NULL
+        }
+        
+        wells_and_blanks <- setdiff(wells, Q2_blanks())
+        
+        melting <- melt(melting, measure.vars = wells_and_blanks)
         melting$value <- as.numeric(melting$value)
 
         fluoro_plot <- ggplot(melting, aes(x=MINS, y=value, group=variable, color=variable)) + geom_line()
@@ -156,12 +188,12 @@ function(input,output,session){
                                 as.numeric(paste0(max(Q2_data()$MINS, na.rm = TRUE)))),
                                 step = as.numeric(Q2_data()$MINS[2]),dragRange = TRUE, post = " min"))
         
-        output$fluoro_start_spot <- renderUI(textInput("fluoro_start", "Start Time (min)",value = paste0(min(Q2_data()$MINS, na.rm = TRUE))))
-        tags$br()
-        output$fluoro_end_spot <- renderUI(textInput("fluoro_end", "End Time (min)",value = paste0(max(Q2_data()$MINS, na.rm = TRUE))))
-        tags$h3(output$fluoro_or_spot <- renderText("or"))
-        tags$br()
-        output$fluoro_duration_spot <- renderUI(textInput("fluoro_duration", "Duration (min)",value = paste0(max(Q2_data()$MINS, na.rm = TRUE))))
+        # output$fluoro_start_spot <- renderUI(textInput("fluoro_start", "Start Time (min)",value = paste0(min(Q2_data()$MINS, na.rm = TRUE))))
+        # tags$br()
+        # output$fluoro_end_spot <- renderUI(textInput("fluoro_end", "End Time (min)",value = paste0(max(Q2_data()$MINS, na.rm = TRUE))))
+        # tags$h3(output$fluoro_or_spot <- renderText("or"))
+        # tags$br()
+        # output$fluoro_duration_spot <- renderUI(textInput("fluoro_duration", "Duration (min)",value = paste0(max(Q2_data()$MINS, na.rm = TRUE))))
       }
     }
   )
@@ -174,30 +206,34 @@ function(input,output,session){
     # Q2_subset <- subset(Q2_data(),Q2_data()$MINS >= as.numeric(input$fluoro_start) & Q2_data()$MINS <= as.numeric(input$fluoro_end))
     Q2_subset <- subset(Q2_data(),Q2_data()$MINS >= as.numeric(input$UI_times[1]) & Q2_data()$MINS <= as.numeric(input$UI_times[2]))
     
+    wells_and_blanks <- setdiff(wells, Q2_blanks())
+    
     Q2_subset_temp <- Q2_subset[,7:54]
-    Q2_subset_temp <- Q2_subset_temp[,wells]
+    Q2_subset_temp <- Q2_subset_temp[,wells_and_blanks]
     Q2_subset[,7:54] <- Q2_subset_temp
+
+    for (Q in Q2_blanks()){
+      Q2_subset[[Q]] <- NULL
+    }
     
     slopes <- NULL
     
-    for (Y in wells){
+    for (Y in wells_and_blanks){
 
       holder <- lm(Q2_subset[[paste(Y,sep="")]] ~ Q2_subset$MINS)
       slopes[[paste(Y,sep="")]] <- print(holder$coefficients[[2]])
 
-      }
-    # slopes <- cbind(wells, slopes)
+    }
+
     slopes <- cbind(wells, slopes)
     
     slopes[,2] <- as.numeric(slopes[,2])*60
     
     # slopes[-(1:4),2] <- as.numeric(slopes[-(1:4),2])-mean(c(as.numeric(slopes[3,2]),as.numeric(slopes[4,2])))
-    
+
     return(slopes)
 
   })
-  
-
   
   Q2_Respiration <- reactive({
     
@@ -214,6 +250,8 @@ function(input,output,session){
     pressureCalc <- sitePressure-(101.35*(1-(1-(altitude/44307.69231))^5.25328))
                                       
     if (!is.null(input$xlsInput) && (!is.null(input$UI_times)) && (meta == "0") && (!is.null(mean(c(as.numeric(Q2_slopes()[3:4,2])))))){
+      
+      metafile <- metafile[!(metafile$wells %in% Q2_blanks()),] 
       
       # airN2Ratio <- as.numeric(Q2_Air_Nitro()$ratio)
       
@@ -244,7 +282,7 @@ function(input,output,session){
       temp_Q2_plate_metadata$Area_Resp <- -(pressureCalc*((20.95/100)*tubeVol*(temp_Q2_slopes - airSlope))/(8314*(273.15+temperature))/(60*60)*1000000*(10000/temp_Q2_plate_metadata$Area))
       temp_Q2_plate_metadata$Fresh_Resp <- -(pressureCalc*((20.95/100)*tubeVol*(temp_Q2_slopes - airSlope))/(8314*(273.15+temperature))/(60*60)*1000000*(1/temp_Q2_plate_metadata$Fresh_Weight)*1000)
       temp_Q2_plate_metadata$Dry_Resp <- -(pressureCalc*((20.95/100)*tubeVol*(temp_Q2_slopes - airSlope))/(8314*(273.15+temperature))/(60*60)*1000000*(1/temp_Q2_plate_metadata$Dry_Weight)*1000)
-      
+     
     }
     
     
@@ -264,6 +302,7 @@ function(input,output,session){
     #   Q20:<signal slope> = <average air> - <average N2>
     #   P20:<signal range> = <air>(OFFSET?) - <N2>(OFFSET?)
     
+    temp_Q2_plate_metadata <- subset(temp_Q2_plate_metadata, !(temp_Q2_plate_metadata$Well %in% Q2_blanks())) 
     
     return(temp_Q2_plate_metadata)
     
@@ -315,8 +354,7 @@ function(input,output,session){
       })
     }
   })
-  
-  
+
   
   output$data_download <- renderUI(
     if (!is.null(Q2_Respiration()) && (!is.null(input$UI_times))){
@@ -412,6 +450,17 @@ function(input,output,session){
   })
   
 
+  output$data_blanks <- renderText({
+    
+    if (length(Q2_blanks()) != 0){
+    
+      c(print("The following wells have been identified as blank: "),paste(Q2_blanks(),collapse=", "))
+    }
+    
+    else{NULL}
+  
+  })
+  
   
   output$Q2_Data <- renderTable({
     
