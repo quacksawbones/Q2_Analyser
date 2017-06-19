@@ -123,28 +123,6 @@ function(input,output,session){
   })
   
   
-  
-  # Q2_Air_Nitro <- reactive({
-  #   
-  #   airNitro <- NULL
-  #   
-  #   # airNitro_temp <- as.data.frame(subset(Q2_data()[,7:10],Q2_data()$MINS >= as.numeric(input$fluoro_start) & Q2_data()$MINS <= as.numeric(input$fluoro_end)), stringsAsFactors = FALSE)
-  #   airNitro_temp <- as.data.frame(subset(Q2_data()[,7:10],Q2_data()$MINS >= as.numeric(input$UI_times[1]) & Q2_data()$MINS <= as.numeric(input$UI_times[2])), stringsAsFactors = FALSE)
-  #   
-  #   airNitro_temp[,1] <- as.numeric(unlist(airNitro_temp[,1]))
-  #   airNitro_temp[,2] <- as.numeric(unlist(airNitro_temp[,2]))
-  #   
-  #   airNitro_temp[,3] <- as.numeric(unlist(airNitro_temp[,3]))
-  #   airNitro_temp[,4] <- as.numeric(unlist(airNitro_temp[,4]))
-  #   
-  #   airNitro$nitroMean <- mean(c(airNitro_temp[,1],airNitro_temp[,2]))
-  #   airNitro$airMean <- mean(c(airNitro_temp[,3],airNitro_temp[,4]))
-  #   airNitro$ratio <- airNitro$airMean-airNitro$nitroMean
-  # 
-  #   return(airNitro)
-  #   
-  # })
-  
 
   observeEvent({input$tabs == "Q2_fluoro_tab"},
     
@@ -187,19 +165,12 @@ function(input,output,session){
                                 value = c(as.numeric(paste0(min(Q2_data()$MINS, na.rm = TRUE))),
                                 as.numeric(paste0(max(Q2_data()$MINS, na.rm = TRUE)))),
                                 step = as.numeric(Q2_data()$MINS[2]),dragRange = TRUE, post = " min"))
-        
-        # output$fluoro_start_spot <- renderUI(textInput("fluoro_start", "Start Time (min)",value = paste0(min(Q2_data()$MINS, na.rm = TRUE))))
-        # tags$br()
-        # output$fluoro_end_spot <- renderUI(textInput("fluoro_end", "End Time (min)",value = paste0(max(Q2_data()$MINS, na.rm = TRUE))))
-        # tags$h3(output$fluoro_or_spot <- renderText("or"))
-        # tags$br()
-        # output$fluoro_duration_spot <- renderUI(textInput("fluoro_duration", "Duration (min)",value = paste0(max(Q2_data()$MINS, na.rm = TRUE))))
       }
     }
   )
   
   # NB: Add function in here that checks the start, end and duration text boxes and updates them if they are NOT multiples of <INTERVAL>
-  # What about something to do witg 
+  # What about something to do with
 
   Q2_slopes <- reactive({
     
@@ -273,34 +244,13 @@ function(input,output,session){
       temp_Q2_plate_metadata$Area <- as.numeric(temp_Q2_plate_metadata$Area)
       temp_Q2_plate_metadata$Fresh_Weight <- as.numeric(temp_Q2_plate_metadata$Fresh_Weight)
       temp_Q2_plate_metadata$Dry_Weight <- as.numeric(temp_Q2_plate_metadata$Dry_Weight)
-      
-      # NB: Original calculations based on Clarissa's models. These are different to what is found in Scafaro et. al. (2016) (unpublished)
-      # temp_Q2_plate_metadata$Area_Resp <- -(pressureCalc*((20.95/100)*tubeVol*temp_Q2_slopes/airN2Ratio)/(8314*(273.15+temperature))/(60*60)*1000000*(10000/temp_Q2_plate_metadata$Area))
-      # temp_Q2_plate_metadata$Fresh_Resp <- -(pressureCalc*((20.95/100)*tubeVol*temp_Q2_slopes/airN2Ratio)/(8314*(273.15+temperature))/(60*60)*1000000*(1/temp_Q2_plate_metadata$Fresh_Weight)*1000)
-      # temp_Q2_plate_metadata$Dry_Resp <- -(pressureCalc*((20.95/100)*tubeVol*temp_Q2_slopes/airN2Ratio)/(8314*(273.15+temperature))/(60*60)*1000000*(1/temp_Q2_plate_metadata$Dry_Weight)*1000)
 
-      temp_Q2_plate_metadata$Area_Resp <- -(pressureCalc*((20.95/100)*tubeVol*(temp_Q2_slopes - airSlope))/(8314*(273.15+temperature))/(60*60)*1000000*(10000/temp_Q2_plate_metadata$Area))
-      temp_Q2_plate_metadata$Fresh_Resp <- -(pressureCalc*((20.95/100)*tubeVol*(temp_Q2_slopes - airSlope))/(8314*(273.15+temperature))/(60*60)*1000000*(1/temp_Q2_plate_metadata$Fresh_Weight)*1000)
-      temp_Q2_plate_metadata$Dry_Resp <- -(pressureCalc*((20.95/100)*tubeVol*(temp_Q2_slopes - airSlope))/(8314*(273.15+temperature))/(60*60)*1000000*(1/temp_Q2_plate_metadata$Dry_Weight)*1000)
+      temp_Q2_plate_metadata$Area_Resp <- -(pressureCalc*((20.95/100)*tubeVol*(temp_Q2_slopes))/(8314*(273.15+temperature))/(60*60)*1000000*(10000/temp_Q2_plate_metadata$Area))
+      temp_Q2_plate_metadata$Fresh_Resp <- -(pressureCalc*((20.95/100)*tubeVol*(temp_Q2_slopes))/(8314*(273.15+temperature))/(60*60)*1000000*(1/temp_Q2_plate_metadata$Fresh_Weight)*1000)
+      temp_Q2_plate_metadata$Dry_Resp <- -(pressureCalc*((20.95/100)*tubeVol*(temp_Q2_slopes))/(8314*(273.15+temperature))/(60*60)*1000000*(1/temp_Q2_plate_metadata$Dry_Weight)*1000)
      
     }
     
-    
-    
-    # Clarissa
-    # 
-    # =-($D$4*(($D$1/100)*$D$5*B20/$D$8)/($D$6*(273.15+$D$7))/(60*60)*1000000*(10000/D20))
-    # 
-    # B20:<slope in time group>
-    #   $D$8: <Air:Nitrogen Standard Range in time group> = 
-    #   
-    #   Lucy
-    # 
-    # =-($D$4*(($D$1/100)*$D$5*(K20+Q20)/P20))/($D$6*(273.15+$D$7))/(60*60)*1000000*(10000/D20)
-    # 
-    # K20:<slope>
-    #   Q20:<signal slope> = <average air> - <average N2>
-    #   P20:<signal range> = <air>(OFFSET?) - <N2>(OFFSET?)
     
     temp_Q2_plate_metadata <- subset(temp_Q2_plate_metadata, !(temp_Q2_plate_metadata$Well %in% Q2_blanks())) 
     
@@ -361,40 +311,6 @@ function(input,output,session){
       downloadButton("downloadBtn", "Download Respiration Data")
     }
   )
-  
-  # NB: this is for the future so you can save different types of data
-  # 
-  # output$download_type_spot <- renderUI(
-  #   if (!is.null(Q2_Respiration()) && (!is.null(input$fluoro_start))){
-  #     selectInput("download_type", "Download As:", c("Comma Separated" = "csv", "Tab Delimited" = "txt","Excel file" = "xls"))
-  #   }
-  # )
-  # 
-  # reactive({
-  #   if (is.null(Q2_Respiration()) || (is.null(input$fluoro_start))){
-  #   }
-  #   else if (input$download_type == "txt"){
-  #     output$downloadBtn <- downloadHandler(
-  #       filename = function() {"Respiration_data.txt"},
-  #       content = function(file) {write.table(Q2_Respiration(), file, row.names=FALSE, sep="\t")}
-  #     )
-  #   }
-  #   else if (input$download_type == "csv"){
-  #     output$downloadBtn <- downloadHandler(
-  #       filename = function() {"Respiration_data.csv"},
-  #       content = function(file) {write.csv(Q2_Respiration(), file, row.names=FALSE)}
-  #     )
-  #   }
-  #   else if (input$download_type == "xlsx"){
-  #     output$downloadBtn <- downloadHandler(
-  #       filename = function() {"Respiration_data.xlsx"},
-  #       content = function(file) {write.xlsx(Q2_Respiration(), file, row.names=FALSE)}
-  #     )
-  #   }
-  # })
-  
-  
-
   
 
   output$downloadBtn <- downloadHandler(

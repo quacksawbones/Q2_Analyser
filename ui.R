@@ -88,13 +88,6 @@ fluidPage(
             tags$h2("Help and instructions are coming soon. In the meantime, contact Darren Cullerne for help!"),
             tags$a(href="mailto:darren.cullerne@anu.edu.au", "darren.cullerne@anu.edu.au"),
             textOutput("temp1")
-    ),
-    
-    tabPanel("Debug", value = "Q2_help_tab",
-      tableOutput("tempTable1"),
-      tableOutput("tempTable2"),
-      textOutput("tempText1"),
-      textOutput("tempText2")
     )
   )
 )
