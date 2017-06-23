@@ -7,16 +7,26 @@ library("XLConnectJars")
 library("XLConnect")
 
 
+
 pdf(NULL)
+
 
 
 function(input,output,session){
 
+  cbind.fill <- function(...){
+    nm <- list(...)
+    nm <- lapply(nm, as.matrix)
+    n <- max(sapply(nm, nrow))
+    do.call(cbind, lapply(nm, function (x) rbind(x, matrix(, n-nrow(x), ncol(x)))))
+  }
+  
+  
   
   output$data_notice <- renderText("Choose a valid .xls(x) data file")
   output$meta_notice <- renderText("Download, complete and upload a metadata file")
   output$respiration_notice <- renderText("Please ensure valid Q2 data, Q2 metadata and experimental conditions are loaded")
-  
+
   
   
   well_cols <- c("A","B","C","D","E","F")
@@ -35,7 +45,7 @@ function(input,output,session){
     if (!is.null(input$xlsInput)){
 
       plate_data <- readWorksheetFromFile(input$xlsInput$datapath,sheet=1,header=FALSE)
-      
+
       if (plate_data[1,1] != "Q2 RUN informaton"){
         
         output$data_notice <- renderText("Does not appear to be a Q2 data file")
@@ -50,7 +60,6 @@ function(input,output,session){
         names(plate_data) <- plate_data[1,]
         plate_data <- plate_data[-1,]
 
-             
         for(X in 0:(length(plate_data$HRS)-1)) {
           plate_data$HRS[[X+1]] <- formatC(X*interval, width=3, flag="0")
         }
@@ -61,19 +70,18 @@ function(input,output,session){
 
         output$data_notice <- renderText("Q2 data file appears to be valid")
 
-          
         return(plate_data)
       }
     }
-    
   })
+  
   
   
   Q2_blanks <- reactive({
 
     blanks <- vector()
         
-    if (!is.null(input$xlsInput)){
+    if (!is.null(Q2_data()) && colnames(Q2_data()[1]) == "Q2 RUN informaton"){
       
       for (i in 7:54){
         
@@ -157,25 +165,99 @@ function(input,output,session){
         
       } 
       )
-    
-      if (is.null(input$UI_times)){
-        output$fluoro_slider <- renderUI(sliderInput("UI_times","Start time and Duration",
-                                min = as.numeric(paste0(min(Q2_data()$MINS, na.rm = TRUE))),
-                                max = as.numeric(paste0(max(Q2_data()$MINS, na.rm = TRUE))),
-                                value = c(as.numeric(paste0(min(Q2_data()$MINS, na.rm = TRUE))),
-                                as.numeric(paste0(max(Q2_data()$MINS, na.rm = TRUE)))),
-                                step = as.numeric(Q2_data()$MINS[2]),dragRange = TRUE, post = " min"))
+
+      if (is.null(input$UI_time_start) && is.null(input$UI_time_stop)){
+        
+        output$fluoro_start_spot <- renderUI(numericInput("UI_time_start",
+                                                          "Start Time",
+                                                          as.numeric(paste0(min(Q2_data()$MINS, na.rm = TRUE))),
+                                                          min=as.numeric(paste0(min(Q2_data()$MINS, na.rm = TRUE))),
+                                                          max=as.numeric(paste0(max(Q2_data()$MINS, na.rm = TRUE))),
+                                                          step=Q2_data()$MINS[2]))
+        output$fluoro_end_spot <- renderUI(numericInput("UI_time_stop",
+                                                        "End Time",
+                                                        value=as.numeric(paste0(max(Q2_data()$MINS, na.rm = TRUE))),
+                                                        min=as.numeric(paste0(min(Q2_data()$MINS, na.rm = TRUE))),
+                                                        max=as.numeric(paste0(max(Q2_data()$MINS, na.rm = TRUE))),
+                                                        step=Q2_data()$MINS[2]))
       }
     }
   )
-  
-  # NB: Add function in here that checks the start, end and duration text boxes and updates them if they are NOT multiples of <INTERVAL>
-  # What about something to do with
 
+  
+  
+  observe({
+    
+    if (!is.null(input$UI_time_start) || (!is.null(input$UI_time_stop))){
+      
+      if (!is.na(as.numeric(input$UI_time_start)) && !is.na(as.numeric(input$UI_time_stop))){
+      
+        if (as.numeric(input$UI_time_start) > -1 || as.numeric(input$UI_time_stop) > -1) {
+        
+          if (as.numeric(input$UI_time_stop) - as.numeric(input$UI_time_start) > 0){
+            
+            if (as.numeric(input$UI_time_start) < as.numeric(paste0(min(Q2_data()$MINS, na.rm = TRUE))) || as.numeric(input$UI_time_stop) > as.numeric(paste0(max(Q2_data()$MINS, na.rm = TRUE)))){
+             
+              output$fluro_duration <- renderText(paste("Ensure start time is equal to or greater than ", paste0(min(Q2_data()$MINS, na.rm = TRUE)), " and end time is equal to or less than ",paste0(max(Q2_data()$MINS, na.rm = TRUE))))
+               
+            }
+            
+            else{
+              multiplier <- as.numeric(Q2_data()$MINS[2])
+              
+              if (as.numeric(input$UI_time_start) %% multiplier != 0 || as.numeric(input$UI_time_stop) %% multiplier != 0){
+                output$fluro_duration <- renderText(paste("Ensure start and stop times are a multiple of ", multiplier))
+              }
+            
+              else
+              {
+                output$fluro_duration <- renderText(paste("Duration: ",as.numeric(input$UI_time_stop) - as.numeric(input$UI_time_start)," minutes"))
+              }
+            }
+          }
+          
+          else{
+           
+            output$fluro_duration <- renderText(paste("Ensure start time is before end time"))
+            
+          }
+        }
+        
+        else{
+        
+          output$fluro_duration <- renderText(paste("Ensure start and end times are positive"))
+        
+        }
+      }
+    
+      else{
+        output$fluro_duration <- renderText(paste("Please ensure the start and end times are numbers"))
+      }
+    }
+    
+  })
+
+  
+  
+  observe({
+    if (input$is_MSLP){
+      updateTextInput(session,"altitude",value = paste(""), label = paste("Altitude not required"))
+      shinyjs::disable("altitude")
+    }
+    else{
+      updateTextInput(session,"altitude", label = paste("Altitude (m)"))
+      shinyjs::enable("altitude")
+    }
+  })
+
+  
+  
   Q2_slopes <- reactive({
     
-    # Q2_subset <- subset(Q2_data(),Q2_data()$MINS >= as.numeric(input$fluoro_start) & Q2_data()$MINS <= as.numeric(input$fluoro_end))
-    Q2_subset <- subset(Q2_data(),Q2_data()$MINS >= as.numeric(input$UI_times[1]) & Q2_data()$MINS <= as.numeric(input$UI_times[2]))
+    req(input$UI_time_start)
+    req(input$UI_time_stop)
+    
+    Q2_subset <- subset(Q2_data(),Q2_data()$MINS >= input$UI_time_start & Q2_data()$MINS <= input$UI_time_stop)
     
     wells_and_blanks <- setdiff(wells, Q2_blanks())
     
@@ -199,14 +281,17 @@ function(input,output,session){
     slopes <- cbind(wells, slopes)
     
     slopes[,2] <- as.numeric(slopes[,2])*60
-    
-    # slopes[-(1:4),2] <- as.numeric(slopes[-(1:4),2])-mean(c(as.numeric(slopes[3,2]),as.numeric(slopes[4,2])))
 
     return(slopes)
 
   })
   
+  
+  
   Q2_Respiration <- reactive({
+    
+    req(as.numeric(input$UI_time_start))
+    req(as.numeric(input$UI_time_stop))
     
     temp_Q2_plate_metadata <- NULL
     
@@ -218,28 +303,27 @@ function(input,output,session){
     tubeVol <- as.numeric(input$tubeVol)
     temperature <- as.numeric(input$temperature)
     
-    pressureCalc <- sitePressure-(101.35*(1-(1-(altitude/44307.69231))^5.25328))
+    if (input$is_MSLP){
+      pressureCalc <- sitePressure
+    }
+    else{
+      pressureCalc <- sitePressure-(101.35*(1-(1-(altitude/44307.69231))^5.25328))
+    }
                                       
-    if (!is.null(input$xlsInput) && (!is.null(input$UI_times)) && (meta == "0") && (!is.null(mean(c(as.numeric(Q2_slopes()[3:4,2])))))){
-      
-      metafile <- metafile[!(metafile$wells %in% Q2_blanks()),] 
-      
-      # airN2Ratio <- as.numeric(Q2_Air_Nitro()$ratio)
+    if (!is.null(input$xlsInput) &&
+        (!is.na(as.numeric(input$UI_time_start) || (!is.na(as.numeric(input$UI_time_stop))))) && 
+        (as.numeric(input$UI_time_start) < as.numeric(input$UI_time_stop)) && (meta == "0") && 
+        (!is.null(mean(c(as.numeric(Q2_slopes()[3:4,2])))))){
       
       airSlope <- mean(c(as.numeric(Q2_slopes()[3:4,2])))
       
-      # temp_Q2_slopes <- Q2_slopes()[-(1:4),2]
       temp_Q2_slopes <- Q2_slopes()[,2]
       
-      # temp_Q2_plate_metadata <- Q2_plate_metadata()[-(1:4),]
       temp_Q2_plate_metadata <- Q2_plate_metadata()
-      
       temp_Q2_slopes <- lapply(temp_Q2_slopes, as.character)
       temp_Q2_slopes <- as.numeric(temp_Q2_slopes)
       
-      # temp_Q2_plate_metadata$Slopes <- as.numeric(Q2_slopes()[-(1:4),2])
       temp_Q2_plate_metadata$Slopes <- as.numeric(Q2_slopes()[,2])
-      
       
       temp_Q2_plate_metadata$Area <- as.numeric(temp_Q2_plate_metadata$Area)
       temp_Q2_plate_metadata$Fresh_Weight <- as.numeric(temp_Q2_plate_metadata$Fresh_Weight)
@@ -248,24 +332,74 @@ function(input,output,session){
       temp_Q2_plate_metadata$Area_Resp <- -(pressureCalc*((20.95/100)*tubeVol*(temp_Q2_slopes))/(8314*(273.15+temperature))/(60*60)*1000000*(10000/temp_Q2_plate_metadata$Area))
       temp_Q2_plate_metadata$Fresh_Resp <- -(pressureCalc*((20.95/100)*tubeVol*(temp_Q2_slopes))/(8314*(273.15+temperature))/(60*60)*1000000*(1/temp_Q2_plate_metadata$Fresh_Weight)*1000)
       temp_Q2_plate_metadata$Dry_Resp <- -(pressureCalc*((20.95/100)*tubeVol*(temp_Q2_slopes))/(8314*(273.15+temperature))/(60*60)*1000000*(1/temp_Q2_plate_metadata$Dry_Weight)*1000)
-     
+
+      temp_Q2_plate_metadata <- subset(temp_Q2_plate_metadata, !(temp_Q2_plate_metadata$Well %in% Q2_blanks()))
+      
+      return(temp_Q2_plate_metadata)
+            
     }
-    
-    
-    temp_Q2_plate_metadata <- subset(temp_Q2_plate_metadata, !(temp_Q2_plate_metadata$Well %in% Q2_blanks())) 
-    
-    return(temp_Q2_plate_metadata)
-    
+    else if (!is.na(as.numeric(input$UI_time_start) || (!is.na(as.numeric(input$UI_time_stop))))){
+      
+      temp_Q2_plate_metadata <- data.frame("")
+      return(temp_Q2_plate_metadata)
+      
+    }
   })
   
   
   
-  output$respiration <- renderTable(digits = 4,Q2_Respiration()[,-1])
+  observe({
+    
+    req(GoodMeta())
+    req(Q2_metadata_table())
+    
+    if (!is.na(as.numeric(input$UI_time_start) || (!is.na(as.numeric(input$UI_time_stop))))){
+      output$respiration <- renderTable(digits = 4,Q2_Respiration()[,-1])
+      output$Resp_Meta <- renderTable(Q2_metadata_table(), colnames = FALSE)
+    }
+  })
+  
+  
+  
+  Q2_metadata_table <- reactive({
+    
+    req(GoodMeta())
+    
+    if ((!is.null(Q2_Respiration())) && (!is.na(as.numeric(input$UI_time_start) || (!is.na(as.numeric(input$UI_time_stop)))))){
+      metadata_table <- data.frame(matrix(NA,nrow=0, ncol=2))
+      
+      if (GoodMeta() == 0){
+        if (input$is_MSLP){
+          metadata_table <-rbind(metadata_table, data.frame(X1="Altitude (m)", X2="Pressure already MSL"))
+        }
+        else{
+          metadata_table <-rbind(metadata_table, data.frame(X1="Altitude (m)", X2=input$altitude))
+        }
+        
+        metadata_table <- rbind(metadata_table, data.frame(X1="Pressure (kpa)", X2=input$sitePressure))
+        metadata_table <- rbind(metadata_table, data.frame(X1="Tube Vol (mL)", X2=input$tubeVol))
+        metadata_table <- rbind(metadata_table, data.frame(X1="Temperature (C)", X2=input$temperature))
+        metadata_table <- rbind(metadata_table, data.frame(X1="Start Time", X2=as.character(input$UI_time_start)))
+        metadata_table <- rbind(metadata_table, data.frame(X1="Stop Time", X2=as.character(input$UI_time_stop)))
+        metadata_table <- rbind(metadata_table, data.frame(X1="Q2 Data File", X2=input$xlsInput$name))
+        metadata_table <- rbind(metadata_table, data.frame(X1="Metadata File", X2=input$metadata$name))
 
+      }
+      
+      return(metadata_table)
+      
+    }
+  })
+  
+  
   
   
   observe({
-    if ((!is.null(Q2_Respiration())) && (!is.null(input$UI_times))){  
+    
+    req(as.numeric(input$UI_time_start))
+    req(as.numeric(input$UI_time_stop))
+    
+    if ((!is.null(Q2_Respiration())) && (!is.na(as.numeric(input$UI_time_start) || (!is.na(as.numeric(input$UI_time_stop)))))){  
       output$Resp_Area <- renderPlotly({
         resp_area_plot <- ggplot(Q2_Respiration()[-(1:4),], aes(x=Well, y=Area_Resp)) + geom_bar(stat="identity")
         resp_area_plot <- resp_area_plot + labs(x = "Well (Q2)",y = paste0("\u03BC","mol Oxygen /m*m/s"), title = "Respiration based on Leaf Area")
@@ -280,7 +414,7 @@ function(input,output,session){
   
   
   observe({
-    if ((!is.null(Q2_Respiration())) && (!is.null(input$UI_times))){
+    if ((!is.null(Q2_Respiration())) && (!is.na(as.numeric(input$UI_time_start) || (!is.na(as.numeric(input$UI_time_stop)))))){
       output$Resp_Fresh_Mass <- renderPlotly({
         resp_area_plot <- ggplot(Q2_Respiration()[-(1:4),], aes(x=Well, y=Fresh_Resp)) + geom_bar(stat="identity")
         resp_area_plot <- resp_area_plot + labs(x = "Well (Q2)",y = paste0("nmol Oxygen /g/s"), title = "Respiration based on Leaf Mass (Fresh)")
@@ -294,7 +428,7 @@ function(input,output,session){
   
   
   observe({
-    if ((!is.null(Q2_Respiration())) && (!is.null(input$UI_times))){
+    if ((!is.null(Q2_Respiration())) && (!is.na(as.numeric(input$UI_time_start) || (!is.na(as.numeric(input$UI_time_stop)))))){
       output$Resp_Dry_Mass <- renderPlotly({
         resp_area_plot <- ggplot(Q2_Respiration()[-(1:4),], aes(x=Well, y=Dry_Resp)) + geom_bar(stat="identity")
         resp_area_plot <- resp_area_plot + labs(x = "Well (Q2)",y = paste0("nmol Oxygen /g/s"), title = "Respiration based on Leaf Mass (Dry)")
@@ -306,19 +440,20 @@ function(input,output,session){
   })
 
   
+  
   output$data_download <- renderUI(
-    if (!is.null(Q2_Respiration()) && (!is.null(input$UI_times))){
+    if (!is.null(Q2_Respiration()) && (!is.null(input$UI_time_start) || (!is.null(input$UI_time_stop)))){
       downloadButton("downloadBtn", "Download Respiration Data")
     }
   )
   
+  
 
   output$downloadBtn <- downloadHandler(
-
-      filename = function() {"Respiration_data.csv"},
-      content = function(file) {write.csv(Q2_Respiration(), file, row.names=FALSE)}
+    filename = function() {paste((strsplit(input$xlsInput$name, "\\.")[[1]][1]),"_respiration.csv")},
+    content = function(file) {write.csv(cbind.fill(Q2_Respiration(),Q2_metadata_table()), file, row.names=FALSE)}
   )
-
+  
   
   
   GoodMeta <- reactive({
@@ -335,7 +470,7 @@ function(input,output,session){
       stuff <- c(stuff,"metadata file")
     }
 
-    if ((altitude == "") || (is.na(as.numeric(altitude)*1))){
+    if (((altitude == "") || (is.na(as.numeric(altitude)*1))) && !input$is_MSLP){
       stuff <- c(stuff,"altitude")
     }
     
@@ -349,6 +484,12 @@ function(input,output,session){
     
     if ((temperature == "") || (is.na(as.numeric(temperature)*1))){
       stuff <- c(stuff,"temperature")
+    }
+    
+    if (is.null(input$UI_time_start) || (is.null(input$UI_time_stop))){
+      if (!is.numeric(input$UI_time_start) || (!is.numeric(input$UI_time_stop))){
+        stuff <- c(stuff, "respiration times")
+      }
     }
     
     if (!is.null(stuff)){
@@ -366,11 +507,13 @@ function(input,output,session){
   })
   
 
+
   output$data_blanks <- renderText({
     
     if (length(Q2_blanks()) != 0){
     
       c(print("The following wells have been identified as blank: "),paste(Q2_blanks(),collapse=", "))
+    
     }
     
     else{NULL}
@@ -378,10 +521,10 @@ function(input,output,session){
   })
   
   
+  
   output$Q2_Data <- renderTable({
     
     Q2_data()
- 
   })
   
 
@@ -389,7 +532,5 @@ function(input,output,session){
   output$Q2_Meta <- renderTable(
     
     Q2_plate_metadata()
-      
   )
-  
 }

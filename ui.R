@@ -7,12 +7,18 @@ library("XLConnect")
 
 fluidPage(
   
+  id = "Q2_form",
+  
+  shinyjs::useShinyjs(),
+  
   tags$h1("Q2 Analyser"),
   tags$br(),
-  # uiOutput("download_type_spot"), - NB: For saveing as different types
+  textOutput("catch_notice"),
   uiOutput("data_download"),
   tags$br(),
     
+  
+  
   tabsetPanel(id = "tabs",
     tabPanel("Q2 Data", value = "Q2_data_tab",
       fluidRow(
@@ -22,11 +28,15 @@ fluidPage(
           textOutput("data_notice"),  
           uiOutput("data_blanks")
         )
-  
       ),
+      
       fluidRow(
         tableOutput("Q2_Data")
-      )),
+        )
+      ),
+    
+    
+    
     tabPanel("Q2 Metadata", value = "Q2_metadata_tab",
       fluidRow(
         column(3,
@@ -35,44 +45,51 @@ fluidPage(
           fileInput("metadata","", accept = c(".xls",".xlsx")),
           textOutput("meta_notice"),
           tags$h1("Q2 Conditions"),
-          textInput("altitude","Altitude (m)"),
           textInput("sitePressure","Site Pressure (kpa)"),
-          #textInput("airportPressure","Airport Pressure (kpa)"),
+          textInput("altitude","Altitude (m)"),
+          checkboxInput("is_MSLP", "Has the pressure been normalised to sea level (Mean Sea Level Pressure)?", value = FALSE),
           textInput("tubeVol","Tube Vol (mL)"),
           textInput("temperature","Temperature (C)")
         ),
         column(6,
           tableOutput("Q2_Meta")
+        )
       )
-      )),
+    ),
       
+    
+    
     navbarMenu("Analysis",
       tabPanel("Fluorescence", value = "Q2_fluoro_tab",
         
         textOutput("fluoro_notice"),
         plotlyOutput("fluoro"),
         uiOutput("fluoro_slider"),
-        uiOutput("fluoro_start_spot"),
-        uiOutput("fluoro_end_spot"),
-        textOutput("fluoro_or_spot"),
-        uiOutput("fluoro_duration_spot")
-        
+        fluidRow(
+          column(1,
+            uiOutput("fluoro_start_spot")
+          ),
+          column(1,
+            uiOutput("fluoro_end_spot")
+          )
         ),
+        fluidRow(
+          column(2,
+            textOutput("fluro_duration")
+          )
+        )
+      ),
+      
+      
      tabPanel("Respiration", value = "Q2_resp_tab",
         
       fluidPage(
         textOutput("respiration_notice"),
-        # column(4,
-        #   textOutput("slopes_notice"),
-        #   tableOutput("slopes")
-        #               
-        # ),
-        # column(8,
-        #   tableOutput("respiration"),
-        #   textOutput("respiration_notice")
-        # )
           column(1,
             tableOutput("respiration")
+          ),
+          column(3, offset=6,
+                 tableOutput("Resp_Meta")
           ),
           column(6,offset=5,
                  plotlyOutput("Resp_Area"),
@@ -84,6 +101,9 @@ fluidPage(
         )
       )
     ),
+    
+    
+    
     tabPanel("Help", value = "Q2_help_tab",
             tags$h2("Help and instructions are coming soon. In the meantime, contact Darren Cullerne for help!"),
             tags$a(href="mailto:darren.cullerne@anu.edu.au", "darren.cullerne@anu.edu.au"),
