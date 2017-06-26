@@ -53,8 +53,8 @@ function(input,output,session){
         return(plate_data)
         
       } else {
-        
-        interval <- as.integer(plate_data[8,3])
+
+        interval <- as.integer(as.POSIXct(plate_data[24,4],format="%d/%m/%Y %H:%M:%S") - as.POSIXct(plate_data[23,4],format="%d/%m/%Y %H:%M:%S"))
   
         plate_data <- plate_data[-(1:21),]
         names(plate_data) <- plate_data[1,]
@@ -379,8 +379,8 @@ function(input,output,session){
         metadata_table <- rbind(metadata_table, data.frame(X1="Pressure (kpa)", X2=input$sitePressure))
         metadata_table <- rbind(metadata_table, data.frame(X1="Tube Vol (mL)", X2=input$tubeVol))
         metadata_table <- rbind(metadata_table, data.frame(X1="Temperature (C)", X2=input$temperature))
-        metadata_table <- rbind(metadata_table, data.frame(X1="Start Time", X2=as.character(input$UI_time_start)))
-        metadata_table <- rbind(metadata_table, data.frame(X1="Stop Time", X2=as.character(input$UI_time_stop)))
+        metadata_table <- rbind(metadata_table, data.frame(X1="Start Time (min)", X2=as.character(input$UI_time_start)))
+        metadata_table <- rbind(metadata_table, data.frame(X1="Stop Time (min)", X2=as.character(input$UI_time_stop)))
         metadata_table <- rbind(metadata_table, data.frame(X1="Q2 Data File", X2=input$xlsInput$name))
         metadata_table <- rbind(metadata_table, data.frame(X1="Metadata File", X2=input$metadata$name))
 
