@@ -54,8 +54,21 @@ function(input,output,session){
         
       } else {
 
-        interval <- as.integer(as.POSIXct(plate_data[24,4],format="%d/%m/%Y %H:%M:%S") - as.POSIXct(plate_data[23,4],format="%d/%m/%Y %H:%M:%S"))
-  
+        
+        tryCatch({
+          x <- as.POSIXct(plate_data[23,4],format="%m/%d/%Y %H:%M:%S")},
+          warning = function(w) {},
+          error = function(e) {
+            print(e)
+          })
+        
+        if (is.na(x)){
+          interval <- as.integer(as.POSIXct(plate_data[24,4],format="%d/%m/%Y %H:%M:%S") - as.POSIXct(plate_data[23,4],format="%d/%m/%Y %H:%M:%S"))
+          
+        }else{
+          interval <- as.integer(as.POSIXct(plate_data[24,4],format="%m/%d/%Y %H:%M:%S") - as.POSIXct(plate_data[23,4],format="%m/%d/%Y %H:%M:%S"))
+        }
+        
         plate_data <- plate_data[-(1:21),]
         names(plate_data) <- plate_data[1,]
         plate_data <- plate_data[-1,]
