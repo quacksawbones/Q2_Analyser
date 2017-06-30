@@ -90,28 +90,6 @@ function(input,output,session){
   
   
   
-  Q2_blanks <- reactive({
-
-    blanks <- vector()
-        
-    if (!is.null(Q2_data()) && colnames(Q2_data()[1]) == "Q2 RUN informaton"){
-      
-      for (i in 7:54){
-        
-        if (is.na(Q2_data()[,i])){
-        
-          blanks <- c(blanks,colnames(Q2_data()[i]))
-        
-        }
-      }
-    }
-
-    return(blanks)
-    
-  })
-  
-  
-  
   output$downloadTemplate <- downloadHandler(
     filename = function() {
       "Q2_metadata_template.xlsx"
@@ -265,6 +243,30 @@ function(input,output,session){
 
   
   
+  Q2_blanks <- reactive({
+    
+    blanks <- vector()
+
+    if (!is.null(Q2_data()) && ((colnames(Q2_data()[1]) == "ID") && (colnames(Q2_data()[6]) == "TEMPERATURE"))){
+      
+      for (i in 7:54){
+        
+        print(Q2_data()[1,i])
+        
+        if (is.na(Q2_data()[,i])){
+          
+          blanks <- c(blanks,colnames(Q2_data()[i]))
+          
+        }
+      }
+    }
+    
+    return(blanks)
+    
+  })
+  
+  
+  
   Q2_slopes <- reactive({
     
     req(input$UI_time_start)
@@ -273,7 +275,7 @@ function(input,output,session){
     Q2_subset <- subset(Q2_data(),Q2_data()$MINS >= input$UI_time_start & Q2_data()$MINS <= input$UI_time_stop)
     
     wells_and_blanks <- setdiff(wells, Q2_blanks())
-    
+
     Q2_subset_temp <- Q2_subset[,7:54]
     Q2_subset_temp <- Q2_subset_temp[,wells_and_blanks]
     Q2_subset[,7:54] <- Q2_subset_temp
