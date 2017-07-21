@@ -7,6 +7,8 @@ library("XLConnectJars")
 library("XLConnect")
 
 
+options(shiny.sanitize.errors = FALSE)
+
 
 pdf(NULL)
 
@@ -330,6 +332,7 @@ function(input,output,session){
         (as.numeric(input$UI_time_start) < as.numeric(input$UI_time_stop)) && (meta == "0") && 
         (!is.null(mean(c(as.numeric(Q2_slopes()[3:4,2])))))){
       
+      #AFB- replace airSlope method with data selection method in future
       airSlope <- mean(c(as.numeric(Q2_slopes()[3:4,2])))
       
       temp_Q2_slopes <- Q2_slopes()[,2]
@@ -413,10 +416,14 @@ function(input,output,session){
     
     req(as.numeric(input$UI_time_start))
     req(as.numeric(input$UI_time_stop))
-    
+
+    #AFB - removing selection [(-1:4),] to restore all rows to the charting, remove standards with complete cases method.
+
     if ((!is.null(Q2_Respiration())) && (!is.na(as.numeric(input$UI_time_start) || (!is.na(as.numeric(input$UI_time_stop)))))){  
       output$Resp_Area <- renderPlotly({
-        resp_area_plot <- ggplot(Q2_Respiration()[-(1:4),], aes(x=Well, y=Area_Resp)) + geom_bar(stat="identity")
+        #resp_area_plot <- ggplot(Q2_Respiration()[-(1:4),], aes(x=Well, y=Area_Resp)) + geom_bar(stat="identity")
+        resp_area_plot <- ggplot(Q2_Respiration()[complete.cases(Q2_Respiration()$Area_Resp),], 
+                                 aes(x=Well, y=Area_Resp)) + geom_bar(stat="identity")
         resp_area_plot <- resp_area_plot + labs(x = "Well (Q2)",y = paste0("\u03BC","mol Oxygen /m*m/s"), title = "Respiration based on Leaf Area")
         resp_area_plot <- resp_area_plot + scale_y_continuous(expand=c(0,0))
         resp_area_plot <- resp_area_plot + theme(axis.title.x = element_text(vjust = -0.5),axis.title.y = element_text(hjust = -1),axis.text = element_text(size=5)) + theme_bw()
@@ -431,7 +438,9 @@ function(input,output,session){
   observe({
     if ((!is.null(Q2_Respiration())) && (!is.na(as.numeric(input$UI_time_start) || (!is.na(as.numeric(input$UI_time_stop)))))){
       output$Resp_Fresh_Mass <- renderPlotly({
-        resp_area_plot <- ggplot(Q2_Respiration()[-(1:4),], aes(x=Well, y=Fresh_Resp)) + geom_bar(stat="identity")
+        #resp_area_plot <- ggplot(Q2_Respiration()[-(1:4),], aes(x=Well, y=Fresh_Resp)) + geom_bar(stat="identity")
+        resp_area_plot <- ggplot(Q2_Respiration()[complete.cases(Q2_Respiration()$Fresh_Resp),],
+                                 aes(x=Well, y=Fresh_Resp)) + geom_bar(stat="identity")
         resp_area_plot <- resp_area_plot + labs(x = "Well (Q2)",y = paste0("nmol Oxygen /g/s"), title = "Respiration based on Leaf Mass (Fresh)")
         resp_area_plot <- resp_area_plot + scale_y_continuous(expand=c(0,0))
         resp_area_plot <- resp_area_plot + theme(axis.title.x = element_text(vjust = -0.5),axis.title.y = element_text(hjust = -1),axis.text = element_text(size=5)) + theme_bw()
@@ -445,7 +454,8 @@ function(input,output,session){
   observe({
     if ((!is.null(Q2_Respiration())) && (!is.na(as.numeric(input$UI_time_start) || (!is.na(as.numeric(input$UI_time_stop)))))){
       output$Resp_Dry_Mass <- renderPlotly({
-        resp_area_plot <- ggplot(Q2_Respiration()[-(1:4),], aes(x=Well, y=Dry_Resp)) + geom_bar(stat="identity")
+        #resp_area_plot <- ggplot(Q2_Respiration()[-(1:4),], aes(x=Well, y=Dry_Resp)) + geom_bar(stat="identity")
+        resp_area_plot <- ggplot(Q2_Respiration()[complete.cases(Q2_Respiration()$Dry_Resp),], aes(x=Well, y=Dry_Resp)) + geom_bar(stat="identity")
         resp_area_plot <- resp_area_plot + labs(x = "Well (Q2)",y = paste0("nmol Oxygen /g/s"), title = "Respiration based on Leaf Mass (Dry)")
         resp_area_plot <- resp_area_plot + scale_y_continuous(expand=c(0,0))
         resp_area_plot <- resp_area_plot + theme(axis.title.x = element_text(vjust = -0.5),axis.title.y = element_text(hjust = -1),axis.text = element_text(size=5)) + theme_bw()
