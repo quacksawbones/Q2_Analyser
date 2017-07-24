@@ -558,4 +558,9 @@ function(input,output,session){
     
     Q2_plate_metadata()
   )
-}
+
+  session$onSessionEnded(function() {
+    dev.off(which = dev.cur())
+  })
+  
+  }
