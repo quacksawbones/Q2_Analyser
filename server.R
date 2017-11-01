@@ -94,10 +94,10 @@ function(input,output,session){
   
   output$downloadTemplate <- downloadHandler(
     filename = function() {
-      "Q2_metadata_template.xlsx"
+      "Q2_metadata_template_48_wells.xlsx"
     },
     content = function(file) {
-      myfile <- srcpath <- "/home/darrenc/R/templates/Q2_metadata_template.xlsx"
+      myfile <- srcpath <- "./resources/Q2_metadata_template_48_wells.xlsx"
       file.copy(myfile, file)
     }
   )
@@ -320,6 +320,9 @@ function(input,output,session){
     tubeVol <- as.numeric(input$tubeVol)
     temperature <- as.numeric(input$temperature)
     
+
+    #NB: One atmosphere of pressure is 101.5 kPa, so the pressure should be a similar value to this
+
     if (input$is_MSLP){
       pressureCalc <- sitePressure
     }

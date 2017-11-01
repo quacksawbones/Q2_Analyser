@@ -47,7 +47,7 @@ fluidPage(
           fileInput("metadata","", accept = c(".xls",".xlsx")),
           textOutput("meta_notice"),
           tags$h1("Q2 Conditions"),
-          textInput("sitePressure","Site Pressure (kpa)"),
+          textInput("sitePressure","Site Pressure (kPa)"),
           textInput("altitude","Altitude (m)"),
           checkboxInput("is_MSLP", "Has the pressure been normalised to sea level (Mean Sea Level Pressure)?", value = FALSE),
           textInput("tubeVol","Tube Vol (mL)"),
