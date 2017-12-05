@@ -90,10 +90,10 @@ fluidPage(
           column(1,
             tableOutput("respiration")
           ),
-          column(3, offset=6,
+          column(5, offset=6,
                  tableOutput("Resp_Meta")
           ),
-          column(6,offset=5,
+          column(5,offset=6,
                  plotlyOutput("Resp_Area"),
                  tags$br(),
                  plotlyOutput("Resp_Fresh_Mass"),
