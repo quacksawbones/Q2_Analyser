@@ -98,7 +98,7 @@ function(input,output,session){
       "Q2_metadata_template_48_wells.xlsx"
     },
     content = function(file) {
-      myfile <- srcpath <- "/home/darrenc/R/shiny_projects/deployed/Q2_Analyser/resources/Q2_metadata_template_48_wells.xlsx"
+      myfile <- srcpath <- "./resources/Q2_metadata_template_48_wells.xlsx"
       file.copy(myfile, file)
     }
   )
