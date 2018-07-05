@@ -4,8 +4,7 @@ library("XLConnectJars")
 library("XLConnect")
 
 
-options(shiny.sanitize.errors = FALSE)
-
+options(shiny.sanitize.errors = FALSE, shiny.minified = TRUE)
 
 fluidPage(
   

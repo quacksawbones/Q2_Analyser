@@ -85,8 +85,12 @@ function(input,output,session){
         
 
         output$data_notice <- renderText("Q2 data file appears to be valid")
-
-        return(plate_data)
+        
+        #print(plate_data[,colSums(is.na(plate_data))==0])
+        
+        
+        #return(plate_data)
+        return(plate_data[,colSums(is.na(plate_data))==0])
       }
     }
   })
@@ -113,8 +117,21 @@ function(input,output,session){
       if (("Well" %in% colnames(plate_metadata)) && ("Plate" %in% colnames(plate_metadata))){
         
         output$meta_notice <- renderText("Q2 metadata file appears to be valid")
-        return(plate_metadata)
-          
+        
+        #df2[df2$W %in% colnames(test_data2[1:length(test_data2)]),]
+        
+        #print(plate_metadata[plate_metadata$Well %in% colnames(Q2_data()[7:length(Q2_data())]),])
+        
+        #return(plate_metadata)
+        
+        #print(na.omit(plate_metadata, cols=c(Sample.Name,Area,Fresh_Weight,Dry_Weight)))
+        
+        return(plate_metadata[!is.na(plate_metadata$Sample.Name) & !is.na(plate_metadata$Area) & !is.na(plate_metadata$Fresh_Weight) & !is.na(plate_metadata$Dry_Weight),])
+        
+        #return(plate_metadata[plate_metadata$Well %in% colnames(Q2_data()[7:length(Q2_data())]),]) 
+        
+        #return(plate_metadata[intersect(plate_metadata$Well,colnames(Q2_data()[7:length(Q2_data())])),])
+         
       } else {
         
         output$meta_notice <- renderText("Does not appear to be a valid metadata file")
@@ -196,7 +213,7 @@ function(input,output,session){
         melting$value <- as.numeric(melting$value)
 
         fluoro_plot <- ggplot(melting, aes(x=MINS, y=value, group=variable, color=variable)) + geom_line()
-        fluoro_plot <- fluoro_plot + labs(x = "Time (min)", y = "Q2 Fluorescence", title = "Q2 Flourescence over Time")
+        fluoro_plot <- fluoro_plot + labs(x = "Time (min)", y = "Q2 Fluorescence", title = "Q2 Flourescence over Time", color = "Well")
         fluoro_plot <- fluoro_plot + scale_y_continuous(limits = c(-0.2, 1.2), breaks = seq(-0.2,1.2,by=0.2), expand=c(0,0))
         fluoro_plot <- fluoro_plot + scale_x_continuous(limits = c(min(Q2_data()$MINS, na.rm = TRUE),max(Q2_data()$MINS, na.rm = TRUE)), breaks = seq(min(Q2_data()$MINS, na.rm = TRUE),max(Q2_data()$MINS, na.rm = TRUE),by=100), expand=c(0,0))
         fluoro_plot <- fluoro_plot + theme(axis.text.x = element_text(hjust = 1))
@@ -615,7 +632,7 @@ function(input,output,session){
   
   
   GoodMeta <- reactive({
-     
+    
     stuff <- NULL
     
     metafile <- input$metadata
@@ -659,6 +676,12 @@ function(input,output,session){
       output$respiration_notice <- renderText(c(print("Please check the following metadata: "),paste(stuff,collapse=", ")))
       return("1")
       
+    } else if (length(setdiff(colnames(Q2_data()[7:length(Q2_data())]), Q2_plate_metadata()$Well)) != 0) {
+      
+      
+      print("Weee!") 
+      return("1")
+    
     } else {
       
       output$respiration_notice <- renderText("")
@@ -702,6 +725,8 @@ function(input,output,session){
 
   session$onSessionEnded(function() {
     dev.off(which = dev.cur())
+    # stopApp()
+    # q("no")
   })
   
   }
