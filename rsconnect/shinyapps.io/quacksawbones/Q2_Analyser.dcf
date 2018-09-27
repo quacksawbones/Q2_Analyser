@@ -1,0 +1,13 @@
+name: Q2_Analyser
+title: Q2_Analyser
+username:
+account: quacksawbones
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 374973
+bundleId: 1467188
+url: https://quacksawbones.shinyapps.io/Q2_Analyser/
+when: 1530834931.3941
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: .RData|resources/.gitignore
