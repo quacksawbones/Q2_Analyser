@@ -5,9 +5,9 @@ account: quacksawbones
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 374973
-bundleId: 1467188
+bundleId: 1610252
 url: https://quacksawbones.shinyapps.io/Q2_Analyser/
-when: 1530834931.3941
+when: 1538096542.77686
 asMultiple: FALSE
 asStatic: FALSE
 ignoredFiles: .RData|resources/.gitignore
