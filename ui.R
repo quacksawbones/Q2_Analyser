@@ -106,9 +106,14 @@ fluidPage(
     
     
     tabPanel("Help", value = "Q2_help_tab",
-            tags$h2("Help and instructions are coming soon. In the meantime, contact Darren Cullerne for help!"),
+            tags$h2("Help and instructions are actively in development. In the meantime, contact Darren Cullerne for help!"),
             tags$a(href="mailto:darren.cullerne@anu.edu.au", "darren.cullerne@anu.edu.au"),
-            textOutput("temp1")
+            textOutput("temp1"),
+            tags$br(),
+            tags$br(),
+            tags$h2("Q2 Analyser - Instructions"),
+            tags$br(),
+            includeHTML("www/Q2_analyser_help_documentation.html")
     )
   )
 )
